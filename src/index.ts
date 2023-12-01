@@ -76,7 +76,6 @@ const transportSchema = new mongoose.Schema({
 });
 
 const transportBookingSchema = new mongoose.Schema({
-    id: String,
     name: String,
     pays: String,
     title: String,
@@ -210,13 +209,20 @@ app.delete('/hotelBookings/:id', async (req:any, res:any) => {
 
 app.get('/transports', async (req: any, res: any) => {
     try {
-        const transports = await Transport.find().exec();
+        const transports = await Transport.find().distinct('pays');
         res.json(transports);
     } catch (err) {
         res.status(500).json({ message: 'Error fetching transports' });
     }
 });
-
+app.get('/transports/:pays', async (req:any, res:any) => {
+    try {
+        const transports = await Transport.find({ pays: req.params.pays });
+        res.json(transports);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching hotels' });
+    }
+});
 app.post('/transportBookings', async (req: any, res: any) => {
     try {
         const transportBooking = new TransportBooking(req.body);
