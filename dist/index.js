@@ -68,9 +68,13 @@ const transportSchema = new mongoose.Schema({
     location: { type: String, required: true },
     price: { type: String, required: true },
     description: { type: String, required: true },
+    nbPersonne: { type: Number, required: true },
+    date: { type: String, required: true },
+    luggage: { type: Number, required: true },
 });
 const transportBookingSchema = new mongoose.Schema({
     id: { type: String },
+    name: { type: String, required: true },
     pays: { type: String, required: true },
     title: { type: String, required: true },
     location: { type: String, required: true },

@@ -70,10 +70,14 @@ const transportSchema = new mongoose.Schema({
     location: String,
     price: String,
     description: String,
+    nbPersonne: Number,
+    date: String,
+    luggage: Number,
 });
 
 const transportBookingSchema = new mongoose.Schema({
     id: String,
+    name: String,
     pays: String,
     title: String,
     location: String,
