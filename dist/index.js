@@ -72,6 +72,10 @@ const transportSchema = new mongoose.Schema({
     date: String,
     luggage: Number,
 });
+const userSchema = new mongoose.Schema({
+    username: String,
+    password: String,
+});
 const transportBookingSchema = new mongoose.Schema({
     name: String,
     pays: String,
@@ -89,6 +93,7 @@ const Booking = mongoose.model('Booking', bookingSchema);
 const HotelBooking = mongoose.model('HotelBooking', hotelBookingSchema);
 const Transport = mongoose.model('Transport', transportSchema);
 const TransportBooking = mongoose.model('TransportBooking', transportBookingSchema);
+const User = mongoose.model('User', userSchema);
 app.get('/flights', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const flights = yield Flight.find().exec();
@@ -214,7 +219,7 @@ app.get('/transports/:pays', (req, res) => __awaiter(void 0, void 0, void 0, fun
         res.json(transports);
     }
     catch (error) {
-        res.status(500).json({ message: 'Error fetching hotels' });
+        res.status(500).json({ message: 'Error fetching transports' });
     }
 }));
 app.post('/transportBookings', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -224,7 +229,9 @@ app.post('/transportBookings', (req, res) => __awaiter(void 0, void 0, void 0, f
         res.json({ message: 'Transport booking created successfully', data: transportBooking });
     }
     catch (error) {
-        res.status(500).json({ message: 'Error creating transport booking' });
+        console.error(error); // Log the error for debugging
+        res.status(500).json({ message: 'Error creating transport booking'
+        });
     }
 }));
 app.get('/transportBookings', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -252,6 +259,32 @@ app.delete('/transportBookings/:id', (req, res) => __awaiter(void 0, void 0, voi
     }
     catch (error) {
         res.status(500).json({ message: 'Error deleting transport booking' });
+    }
+}));
+app.post('/signup', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const user = new User(req.body);
+        yield user.save();
+        res.json({ message: 'booking created successfully', data: user });
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error creating user' });
+    }
+}));
+app.post('/signin', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { username, password } = req.body;
+        const user = yield User.findOne({ username, password });
+        if (user) {
+            res.json({ message: 'Signin successful', user });
+        }
+        else {
+            res.status(404).json({ message: 'User not found' });
+        }
+    }
+    catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Error during signin process' });
     }
 }));
 app.listen(PORT, () => {
