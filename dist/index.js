@@ -25,12 +25,8 @@ db.once('open', () => {
 app.use(bodyParser.json());
 app.use(cors());
 const bookingSchema = new mongoose.Schema({
-    duration: String,
-    date: String,
-    returnDate: String,
-    destination: String,
-    departure: String,
-    price: Number,
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    flight: { type: mongoose.Schema.Types.ObjectId, ref: 'Flight', required: true },
     nbAdult: Number,
     nbChildren: Number,
     travelClass: String,
@@ -44,6 +40,7 @@ const flightSchema = new mongoose.Schema({
     price: { type: Number, required: true },
     nbBuisPlaces: { type: Number, required: true },
     nbEcoPlaces: { type: Number, required: true },
+    bookings: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Booking' }]
 });
 const hotelSchema = new mongoose.Schema({
     pays: { type: String, required: true },
@@ -75,6 +72,7 @@ const transportSchema = new mongoose.Schema({
 const userSchema = new mongoose.Schema({
     username: String,
     password: String,
+    bookings: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Booking' }]
 });
 const transportBookingSchema = new mongoose.Schema({
     name: String,
@@ -103,13 +101,42 @@ app.get('/flights', (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         res.status(500).json({ message: "erreur" });
     }
 }));
+app.get('/flights/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const flightId = req.params.id;
+        const flight = yield Flight.findById(flightId).exec();
+        if (!flight) {
+            return res.status(404).json({ message: 'Flight not found' });
+        }
+        res.json(flight);
+    }
+    catch (err) {
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+}));
+app.get('/user/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const userId = req.params.id;
+        const user = yield User.findById(userId).exec();
+        if (!user) {
+            return res.status(404).json({ message: 'User not found', userId });
+        }
+        res.json(user);
+    }
+    catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+}));
 app.post('/bookings', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const booking = new Booking(req.body);
+        const { user, flight, nbAdult, nbChildren, travelClass } = req.body;
+        const booking = new Booking({ user, flight, nbAdult, nbChildren, travelClass });
         yield booking.save();
-        res.json({ message: 'booking created successfully', data: booking });
+        res.json({ message: 'Booking created successfully', data: booking });
     }
     catch (error) {
+        console.error(error);
         res.status(500).json({ message: 'Error creating booking' });
     }
 }));
@@ -263,11 +290,18 @@ app.delete('/transportBookings/:id', (req, res) => __awaiter(void 0, void 0, voi
 }));
 app.post('/signup', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const user = new User(req.body);
+        const { username, password } = req.body;
+        const existingUser = yield User.findOne({ username }).exec();
+        if (existingUser) {
+            return res.status(400).json({ message: 'Username already exists' });
+        }
+        // Le nom d'utilisateur est unique, créer un nouvel utilisateur
+        const user = new User({ username, password });
         yield user.save();
-        res.json({ message: 'booking created successfully', data: user });
+        res.json({ message: 'User created successfully', data: user });
     }
     catch (error) {
+        console.error(error);
         res.status(500).json({ message: 'Error creating user' });
     }
 }));
@@ -276,7 +310,7 @@ app.post('/signin', (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         const { username, password } = req.body;
         const user = yield User.findOne({ username, password });
         if (user) {
-            res.json({ message: 'Signin successful', user });
+            res.json(user);
         }
         else {
             res.status(404).json({ message: 'User not found' });
