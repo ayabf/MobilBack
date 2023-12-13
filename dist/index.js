@@ -79,6 +79,7 @@ const userSchema = new mongoose.Schema({
     username: String,
     password: String,
     token: String,
+    role: String,
     bookings: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Booking' }]
 });
 const transportBookingSchema = new mongoose.Schema({
@@ -165,12 +166,14 @@ app.put('/status/:id', (req, res) => __awaiter(void 0, void 0, void 0, function*
             return res.status(404).json({ message: 'Booking not found' });
         }
         const updatedBooking = yield Booking.findByIdAndUpdate(bookingId, req.body, { new: true });
+        const user = yield User.findById(existingBooking.user).exec();
+        console.log(user.token);
         res.json({ message: 'Booking updated successfully', data: updatedBooking });
         if (updatedBooking.status === "accepted") {
-            sendPushNotification("c36N0r2bSQiKIYJktxcRZ7:APA91bGoDWGQ6bgOtsoPOQ4z40VkuIeyZnixMKYOqQaQoH-SRv5nprOFulE1YRz1g7ftqnWyDKDa8McRli1ffZo9uRASCe1EJOVL-07jyTuvgb2_r3lWRg1vHekXw89owajDASKaxhPK", 'Your Flight Booking is accepted');
+            sendPushNotification(user.token, 'Your Flight Booking is accepted');
         }
         else {
-            sendPushNotification("c36N0r2bSQiKIYJktxcRZ7:APA91bGoDWGQ6bgOtsoPOQ4z40VkuIeyZnixMKYOqQaQoH-SRv5nprOFulE1YRz1g7ftqnWyDKDa8McRli1ffZo9uRASCe1EJOVL-07jyTuvgb2_r3lWRg1vHekXw89owajDASKaxhPK", 'Your Flight Booking is accepted');
+            sendPushNotification(user.token, 'Your Flight Booking is accepted');
         }
     }
     catch (error) {
@@ -185,13 +188,14 @@ app.put('/statusHotel/:id', (req, res) => __awaiter(void 0, void 0, void 0, func
         if (!existingBooking) {
             return res.status(404).json({ message: 'Booking not found' });
         }
+        const user = yield User.findById(existingBooking.user).exec();
         const updatedBooking = yield HotelBooking.findByIdAndUpdate(bookingId, req.body, { new: true });
         res.json({ message: 'Booking updated successfully', data: updatedBooking });
         if (updatedBooking.status === "accepted") {
-            sendPushNotification("c36N0r2bSQiKIYJktxcRZ7:APA91bGoDWGQ6bgOtsoPOQ4z40VkuIeyZnixMKYOqQaQoH-SRv5nprOFulE1YRz1g7ftqnWyDKDa8McRli1ffZo9uRASCe1EJOVL-07jyTuvgb2_r3lWRg1vHekXw89owajDASKaxhPK", 'Your Hotel Booking is accepted');
+            sendPushNotification("fIPFXcFaReeXitmtUJyXo5:APA91bGoX7xP21RvIUfUlqQg98jVUQH4UvIC25Alj9Jez9nbVSdQCDB7HQa8fo-DtSP8Uk06aR05RTGsUAy5lha_BD-1dZid7JxUn8coJgNUrcz0zgBh-MV27tt04Xvha8cfsWOMXfqz", 'Your Hotel Booking is accepted');
         }
         else {
-            sendPushNotification("c36N0r2bSQiKIYJktxcRZ7:APA91bGoDWGQ6bgOtsoPOQ4z40VkuIeyZnixMKYOqQaQoH-SRv5nprOFulE1YRz1g7ftqnWyDKDa8McRli1ffZo9uRASCe1EJOVL-07jyTuvgb2_r3lWRg1vHekXw89owajDASKaxhPK", 'Your Hotel Booking is accepted');
+            sendPushNotification(user.token, 'Your Hotel Booking is accepted');
         }
     }
     catch (error) {
@@ -207,12 +211,13 @@ app.put('/statusTransport/:id', (req, res) => __awaiter(void 0, void 0, void 0, 
             return res.status(404).json({ message: 'Booking not found' });
         }
         const updatedBooking = yield TransportBooking.findByIdAndUpdate(bookingId, req.body, { new: true });
+        const user = yield User.findById(existingBooking.user).exec();
         res.json({ message: 'Booking updated successfully', data: updatedBooking });
         if (updatedBooking.status === "accepted") {
-            sendPushNotification("c36N0r2bSQiKIYJktxcRZ7:APA91bGoDWGQ6bgOtsoPOQ4z40VkuIeyZnixMKYOqQaQoH-SRv5nprOFulE1YRz1g7ftqnWyDKDa8McRli1ffZo9uRASCe1EJOVL-07jyTuvgb2_r3lWRg1vHekXw89owajDASKaxhPK", 'Your Transport Booking is accepted');
+            sendPushNotification(user.token, 'Your Transport Booking is accepted');
         }
         else {
-            sendPushNotification("c36N0r2bSQiKIYJktxcRZ7:APA91bGoDWGQ6bgOtsoPOQ4z40VkuIeyZnixMKYOqQaQoH-SRv5nprOFulE1YRz1g7ftqnWyDKDa8McRli1ffZo9uRASCe1EJOVL-07jyTuvgb2_r3lWRg1vHekXw89owajDASKaxhPK", 'Your Transport Booking is accepted');
+            sendPushNotification(user.token, 'Your Transport Booking is accepted');
         }
     }
     catch (error) {
@@ -235,6 +240,9 @@ const sendPushNotification = (fcmToken, title) => {
         })
             .catch((error) => {
             console.error('Error sending notification:', error);
+            if (error.code === 'messaging/registration-token-not-registered') {
+                console.log('Registration token is not registered.');
+            }
         });
     }
     catch (err) {
@@ -309,7 +317,7 @@ app.get('/hotelBookings', (req, res) => __awaiter(void 0, void 0, void 0, functi
 app.put('/hotelBookings/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const hotelBookings = yield HotelBooking.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        res.json({ message: 'Booking updated successfully', data: HotelBooking });
+        res.json({ message: 'Booking updated successfully', data: hotelBookings });
     }
     catch (error) {
         res.status(500).json({ message: 'Error updating Booking' });
@@ -318,7 +326,7 @@ app.put('/hotelBookings/:id', (req, res) => __awaiter(void 0, void 0, void 0, fu
 app.delete('/hotelBookings/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const hotelBookings = yield HotelBooking.findByIdAndDelete(req.params.id);
-        res.json({ message: 'Booking deleted successfully', data: HotelBooking });
+        res.json({ message: 'Booking deleted successfully', data: hotelBookings });
     }
     catch (error) {
         res.status(500).json({ message: 'Error deleting booking' });
@@ -353,7 +361,8 @@ app.post('/transportBookings', (req, res) => __awaiter(void 0, void 0, void 0, f
             description,
             nbPersonne,
             date,
-            luggage, status: "en attente" });
+            luggage,
+            status: "en attente" });
         yield transportBooking.save();
         res.json({ message: 'Transport booking created successfully', data: transportBooking });
     }
@@ -397,7 +406,7 @@ app.post('/signup', (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         if (existingUser) {
             return res.status(400).json({ message: 'Username already exists' });
         }
-        const user = new User({ username, password, token });
+        const user = new User({ username, password, token, role: "client" });
         yield user.save();
         res.json({ message: 'User created successfully', data: user });
     }

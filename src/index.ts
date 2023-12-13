@@ -80,6 +80,7 @@ const userSchema = new mongoose.Schema({
     username: String,
     password: String,
     token:String,
+    role:String,
     bookings: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Booking' }]
 });
 const transportBookingSchema = new mongoose.Schema({
@@ -181,13 +182,14 @@ app.put('/status/:id', async (req:any, res:any) => {
         }
 
         const updatedBooking = await Booking.findByIdAndUpdate(bookingId, req.body, { new: true });
-       
+       const user= await User.findById(existingBooking.user).exec();
+       console.log(user.token);
         res.json({ message: 'Booking updated successfully', data: updatedBooking });
         if (updatedBooking.status==="accepted")
-        {        sendPushNotification("c36N0r2bSQiKIYJktxcRZ7:APA91bGoDWGQ6bgOtsoPOQ4z40VkuIeyZnixMKYOqQaQoH-SRv5nprOFulE1YRz1g7ftqnWyDKDa8McRli1ffZo9uRASCe1EJOVL-07jyTuvgb2_r3lWRg1vHekXw89owajDASKaxhPK", 'Your Flight Booking is accepted');
+        {        sendPushNotification(user.token, 'Your Flight Booking is accepted');
         }
         else{
-               sendPushNotification("c36N0r2bSQiKIYJktxcRZ7:APA91bGoDWGQ6bgOtsoPOQ4z40VkuIeyZnixMKYOqQaQoH-SRv5nprOFulE1YRz1g7ftqnWyDKDa8McRli1ffZo9uRASCe1EJOVL-07jyTuvgb2_r3lWRg1vHekXw89owajDASKaxhPK", 'Your Flight Booking is accepted');
+               sendPushNotification(user.token, 'Your Flight Booking is accepted');
            
         }
     } catch (error) {
@@ -204,15 +206,16 @@ app.put('/statusHotel/:id', async (req:any, res:any) => {
         if (!existingBooking) {
             return res.status(404).json({ message: 'Booking not found' });
         }
+        const user= await User.findById(existingBooking.user).exec();
 
         const updatedBooking = await HotelBooking.findByIdAndUpdate(bookingId, req.body, { new: true });
        
         res.json({ message: 'Booking updated successfully', data: updatedBooking });
         if (updatedBooking.status==="accepted")
-        {        sendPushNotification("c36N0r2bSQiKIYJktxcRZ7:APA91bGoDWGQ6bgOtsoPOQ4z40VkuIeyZnixMKYOqQaQoH-SRv5nprOFulE1YRz1g7ftqnWyDKDa8McRli1ffZo9uRASCe1EJOVL-07jyTuvgb2_r3lWRg1vHekXw89owajDASKaxhPK", 'Your Hotel Booking is accepted');
+        {        sendPushNotification("user.token", 'Your Hotel Booking is accepted');
         }
         else{
-               sendPushNotification("c36N0r2bSQiKIYJktxcRZ7:APA91bGoDWGQ6bgOtsoPOQ4z40VkuIeyZnixMKYOqQaQoH-SRv5nprOFulE1YRz1g7ftqnWyDKDa8McRli1ffZo9uRASCe1EJOVL-07jyTuvgb2_r3lWRg1vHekXw89owajDASKaxhPK", 'Your Hotel Booking is accepted');
+               sendPushNotification(user.token, 'Your Hotel Booking is accepted');
            
         }
     } catch (error) {
@@ -231,13 +234,14 @@ app.put('/statusTransport/:id', async (req:any, res:any) => {
         }
 
         const updatedBooking = await TransportBooking.findByIdAndUpdate(bookingId, req.body, { new: true });
-       
+        const user= await User.findById(existingBooking.user).exec();
+
         res.json({ message: 'Booking updated successfully', data: updatedBooking });
         if (updatedBooking.status==="accepted")
-        {        sendPushNotification("c36N0r2bSQiKIYJktxcRZ7:APA91bGoDWGQ6bgOtsoPOQ4z40VkuIeyZnixMKYOqQaQoH-SRv5nprOFulE1YRz1g7ftqnWyDKDa8McRli1ffZo9uRASCe1EJOVL-07jyTuvgb2_r3lWRg1vHekXw89owajDASKaxhPK", 'Your Transport Booking is accepted');
+        {        sendPushNotification(user.token, 'Your Transport Booking is accepted');
         }
         else{
-               sendPushNotification("c36N0r2bSQiKIYJktxcRZ7:APA91bGoDWGQ6bgOtsoPOQ4z40VkuIeyZnixMKYOqQaQoH-SRv5nprOFulE1YRz1g7ftqnWyDKDa8McRli1ffZo9uRASCe1EJOVL-07jyTuvgb2_r3lWRg1vHekXw89owajDASKaxhPK", 'Your Transport Booking is accepted');
+               sendPushNotification(user.token, 'Your Transport Booking is accepted');
            
         }
     } catch (error) {
@@ -245,11 +249,11 @@ app.put('/statusTransport/:id', async (req:any, res:any) => {
         res.status(500).json({ message: 'Error updating Booking' });
     }
 });
-const sendPushNotification = (fcmToken:any, title:any) => {
+const sendPushNotification = (fcmToken: any, title:any) => {
     try {
         const message = {
             notification: {
-                title:"Flyware Agency",
+                title: "Flyware Agency",
                 body: title,
             },
             token: fcmToken,
@@ -261,6 +265,10 @@ const sendPushNotification = (fcmToken:any, title:any) => {
             })
             .catch((error:any) => {
                 console.error('Error sending notification:', error);
+
+                if (error.code === 'messaging/registration-token-not-registered') {
+                    console.log('Registration token is not registered.');
+                }
             });
     } catch (err) {
         console.error('Error sending notification:', err);
@@ -335,7 +343,7 @@ app.get('/hotelBookings', async (req:any, res:any) => {
 app.put('/hotelBookings/:id', async (req:any, res:any) => {
     try {
         const hotelBookings = await HotelBooking.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        res.json({ message: 'Booking updated successfully', data: HotelBooking });
+        res.json({ message: 'Booking updated successfully', data: hotelBookings });
     } catch (error) {
         res.status(500).json({ message: 'Error updating Booking'});
     }
@@ -344,7 +352,7 @@ app.put('/hotelBookings/:id', async (req:any, res:any) => {
 app.delete('/hotelBookings/:id', async (req:any, res:any) => {
     try {
         const hotelBookings = await HotelBooking.findByIdAndDelete(req.params.id);
-        res.json({ message: 'Booking deleted successfully', data: HotelBooking });
+        res.json({ message: 'Booking deleted successfully', data: hotelBookings });
     } catch (error) {
         res.status(500).json({ message: 'Error deleting booking' });
     }
@@ -385,7 +393,8 @@ app.post('/transportBookings', async (req: any, res: any) => {
             description,
             nbPersonne,
             date,
-            luggage,status: "en attente"});        
+            luggage,
+            status: "en attente"});        
             await transportBooking.save();
         res.json({ message: 'Transport booking created successfully', data: transportBooking });
     } catch (error) {
@@ -432,7 +441,7 @@ app.post('/signup', async (req:any, res:any) => {
             return res.status(400).json({ message: 'Username already exists' });
         }
 
-        const user = new User({ username, password,token });
+        const user = new User({ username, password,token,role:"client" });
         await user.save();
         res.json({ message: 'User created successfully', data: user });
     } catch (error) {
